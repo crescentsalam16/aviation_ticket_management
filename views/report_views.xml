@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Dashboard / Report summary view -->
+    <record id="view_aviation_report_summary" model="ir.ui.view">
+        <field name="name">aviation.report.summary</field>
+        <field name="model">aviation.ticket</field>
+        <field name="arch" type="xml">
+            <graph string="Revenue Summary" type="bar" stacked="1">
+                <field name="pos_channel" type="row"/>
+                <field name="face_value" type="measure"/>
+                <field name="comm" type="measure"/>
+                <field name="net_sales" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_aviation_report_summary" model="ir.actions.act_window">
+        <field name="name">Revenue Dashboard</field>
+        <field name="res_model">aviation.ticket</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="context">{'search_default_group_by_pos': 1}</field>
+    </record>
+</odoo>

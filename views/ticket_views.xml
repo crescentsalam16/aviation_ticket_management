@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ════════════════════════════════════════════════════════
+         AVIATION TICKET - FORM VIEW
+    ════════════════════════════════════════════════════════ -->
+    <record id="view_aviation_ticket_form" model="ir.ui.view">
+        <field name="name">aviation.ticket.form</field>
+        <field name="model">aviation.ticket</field>
+        <field name="arch" type="xml">
+            <form string="Ticket">
+                <header>
+                    <button name="action_mark_flown" string="Mark as Flown"
+                            type="object" class="oe_highlight"
+                            invisible="status == 'flown'"/>
+                    <button name="action_refund" string="Process Refund"
+                            type="object"
+                            invisible="status in ('refunded','void','cancelled')"/>
+                    <button name="action_reissue" string="Reissue Ticket"
+                            type="object"
+                            invisible="status in ('refunded','void','expired','reissued')"/>
+                    <button name="action_mark_expired" string="Mark Expired"
+                            type="object"
+                            invisible="status in ('expired','flown','refunded','void','cancelled')"/>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="unutilised,flown,refunded,expired"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="ticket_no" placeholder="Ticket Number"/>
+                        </h1>
+                        <h3>
+                            <field name="passenger_name" placeholder="Passenger Name"/>
+                        </h3>
+                    </div>
+
+                    <group>
+                        <group string="Flight Details">
+                            <field name="rloc"/>
+                            <field name="flight_no"/>
+                            <field name="flight_date"/>
+                            <field name="route"/>
+                            <field name="ticket_class"/>
+                            <field name="fare_basis"/>
+                            <field name="product_code"/>
+                            <field name="transaction_date"/>
+                            <field name="date_of_issue"/>
+                            <field name="ticket_expires"/>
+                            <field name="et_status"/>
+                        </group>
+                        <group string="Point of Sale &amp; Agency">
+                            <field name="pos_channel" widget="selection"/>
+                            <field name="sale_type" widget="selection"/>
+                            <field name="gds_name"
+                                   invisible="pos_channel != 'gds'"/>
+                            <field name="agent_code"
+                                   invisible="pos_channel != 'agent'"/>
+                            <field name="agent_name"
+                                   invisible="pos_channel != 'agent'"/>
+                            <field name="issue_agent_id"/>
+                            <field name="issue_office"/>
+                            <field name="fop"/>
+                            <field name="fop_desc"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Fare &amp; Financials" name="fare">
+                            <group>
+                                <group string="Revenue">
+                                    <field name="fare_curr"/>
+                                    <field name="face_value"/>
+                                    <field name="net_fare"/>
+                                    <field name="comm"/>
+                                    <field name="comm_pct" widget="percentage"/>
+                                    <field name="net_sales"/>
+                                </group>
+                                <group string="Totals">
+                                    <field name="total_taxes"/>
+                                    <field name="total_amount"/>
+                                    <field name="total_ancillary"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Taxes &amp; Levies" name="taxes">
+                            <group>
+                                <group string="Statutory Taxes">
+                                    <field name="g5" string="G5 – PSC (Passenger Service Charge)"/>
+                                    <field name="psc_amount" string="PSC Total"/>
+                                    <field name="ng" string="NG – Nigerian Tax"/>
+                                    <field name="qt" string="QT – Government Tax"/>
+                                    <field name="s9" string="S9 – Security Charge"/>
+                                    <field name="vat_amount" string="VAT"/>
+                                </group>
+                                <group string="Surcharges &amp; Miscellaneous">
+                                    <field name="te" string="TE – Ticket Surcharge"/>
+                                    <field name="yq" string="YQ – Fuel Surcharge"/>
+                                    <field name="xt" string="XT – Misc Taxes"/>
+                                    <field name="other_tax"/>
+                                    <field name="total_taxes"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Refund / Reissue" name="refund"
+                              invisible="not is_refund and not is_reissue">
+                            <group>
+                                <group>
+                                    <field name="is_refund"/>
+                                    <field name="is_reissue"/>
+                                    <field name="original_ticket_id"/>
+                                    <field name="refund_date"/>
+                                </group>
+                                <group>
+                                    <field name="refund_amount"/>
+                                    <field name="refund_channel"/>
+                                    <field name="refund_reason"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Ancillary Services" name="ancillary">
+                            <field name="ancillary_ids">
+                                <tree editable="bottom">
+                                    <field name="service_type"/>
+                                    <field name="description"/>
+                                    <field name="amount"/>
+                                    <field name="currency"/>
+                                    <field name="pos_channel"/>
+                                    <field name="route"/>
+                                    <field name="weight_kg"/>
+                                    <field name="service_date"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="total_ancillary"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+
+                        <page string="Sync Info" name="sync">
+                            <group>
+                                <field name="sync_source"/>
+                                <field name="external_id"/>
+                                <field name="last_synced"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════
+         AVIATION TICKET - LIST VIEW
+    ════════════════════════════════════════════════════════ -->
+    <record id="view_aviation_ticket_tree" model="ir.ui.view">
+        <field name="name">aviation.ticket.tree</field>
+        <field name="model">aviation.ticket</field>
+        <field name="arch" type="xml">
+            <tree string="Tickets" decoration-success="status == 'flown'"
+                  decoration-warning="status == 'unutilised'"
+                  decoration-danger="status in ('expired','void','cancelled')"
+                  decoration-info="status in ('refunded','reissued')">
+                <field name="ticket_no"/>
+                <field name="passenger_name"/>
+                <field name="route"/>
+                <field name="flight_no"/>
+                <field name="flight_date"/>
+                <field name="pos_channel" widget="badge"
+                       decoration-success="pos_channel == 'paystack'"
+                       decoration-info="pos_channel in ('website','mobile_app')"
+                       decoration-warning="pos_channel == 'agent'"/>
+                <field name="sale_type"/>
+                <field name="fare_curr"/>
+                <field name="face_value" sum="Total Face Value"/>
+                <field name="comm" sum="Total Commission"/>
+                <field name="net_sales" sum="Total Net Sales"/>
+                <field name="total_taxes" sum="Total Taxes"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'flown'"
+                       decoration-warning="status == 'unutilised'"
+                       decoration-danger="status in ('expired','cancelled')"
+                       decoration-info="status == 'refunded'"/>
+                <field name="transaction_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════
+         AVIATION TICKET - SEARCH VIEW
+    ════════════════════════════════════════════════════════ -->
+    <record id="view_aviation_ticket_search" model="ir.ui.view">
+        <field name="name">aviation.ticket.search</field>
+        <field name="model">aviation.ticket</field>
+        <field name="arch" type="xml">
+            <search string="Search Tickets">
+                <field name="ticket_no" string="Ticket No" filter_domain="[('ticket_no','ilike',self)]"/>
+                <field name="passenger_name"/>
+                <field name="route"/>
+                <field name="flight_no"/>
+                <field name="agent_name"/>
+                <field name="agent_code"/>
+                <field name="issue_agent_id"/>
+                <separator/>
+                <!-- Status Filters -->
+                <filter name="flown" string="Flown" domain="[('status','=','flown')]"/>
+                <filter name="unutilised" string="Unutilised" domain="[('status','=','unutilised')]"/>
+                <filter name="expired" string="Expired" domain="[('status','=','expired')]"/>
+                <filter name="refunded" string="Refunded" domain="[('status','=','refunded')]"/>
+                <filter name="reissued" string="Reissued" domain="[('status','=','reissued')]"/>
+                <separator/>
+                <!-- POS Filters -->
+                <filter name="paystack" string="Paystack" domain="[('pos_channel','=','paystack')]"/>
+                <filter name="airvend" string="Airvend" domain="[('pos_channel','=','airvend')]"/>
+                <filter name="gds" string="GDS" domain="[('pos_channel','=','gds')]"/>
+                <filter name="agent" string="Agents" domain="[('pos_channel','=','agent')]"/>
+                <filter name="direct" string="Direct Sales" domain="[('sale_type','=','direct')]"/>
+                <filter name="indirect" string="Agency Sales" domain="[('sale_type','=','indirect')]"/>
+                <separator/>
+                <!-- Special Filters -->
+                <filter name="refunds_only" string="Refunds" domain="[('is_refund','=',True)]"/>
+                <filter name="reissues_only" string="Reissues" domain="[('is_reissue','=',True)]"/>
+                <separator/>
+                <!-- Group By -->
+                <group expand="0" string="Group By">
+                    <filter name="group_by_pos" string="Point of Sale" context="{'group_by': 'pos_channel'}"/>
+                    <filter name="group_by_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_by_sale_type" string="Sale Type" context="{'group_by': 'sale_type'}"/>
+                    <filter name="group_by_route" string="Route" context="{'group_by': 'route'}"/>
+                    <filter name="group_by_agent" string="Agent" context="{'group_by': 'agent_name'}"/>
+                    <filter name="group_by_currency" string="Currency" context="{'group_by': 'fare_curr'}"/>
+                    <filter name="group_by_flight" string="Flight" context="{'group_by': 'flight_no'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Pivot View for Analytics -->
+    <record id="view_aviation_ticket_pivot" model="ir.ui.view">
+        <field name="name">aviation.ticket.pivot</field>
+        <field name="model">aviation.ticket</field>
+        <field name="arch" type="xml">
+            <pivot string="Ticket Analytics">
+                <field name="pos_channel" type="row"/>
+                <field name="status" type="col"/>
+                <field name="face_value" type="measure"/>
+                <field name="net_sales" type="measure"/>
+                <field name="comm" type="measure"/>
+                <field name="total_taxes" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View -->
+    <record id="view_aviation_ticket_graph" model="ir.ui.view">
+        <field name="name">aviation.ticket.graph</field>
+        <field name="model">aviation.ticket</field>
+        <field name="arch" type="xml">
+            <graph string="Ticket Revenue" type="bar">
+                <field name="pos_channel" type="row"/>
+                <field name="face_value" type="measure"/>
+                <field name="net_sales" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Main Action -->
+    <record id="action_aviation_ticket" model="ir.actions.act_window">
+        <field name="name">Tickets</field>
+        <field name="res_model">aviation.ticket</field>
+        <field name="view_mode">tree,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_aviation_ticket_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No tickets yet!
+            </p>
+            <p>Use the <strong>Sync</strong> button to import tickets from your integration service,
+               or create tickets manually.</p>
+        </field>
+    </record>
+
+    <!-- Refunded tickets shortcut -->
+    <record id="action_aviation_ticket_refunds" model="ir.actions.act_window">
+        <field name="name">Refunds &amp; Reissues</field>
+        <field name="res_model">aviation.ticket</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_refund','=',True)]</field>
+        <field name="search_view_id" ref="view_aviation_ticket_search"/>
+    </record>
+
+    <!-- Expired tickets shortcut -->
+    <record id="action_aviation_ticket_expired" model="ir.actions.act_window">
+        <field name="name">Flown / Unutilised / Expired</field>
+        <field name="res_model">aviation.ticket</field>
+        <field name="view_mode">tree,pivot,graph,form</field>
+        <field name="domain">[('status','in',['flown','unutilised','expired'])]</field>
+        <field name="context">{'search_default_group_by_status': 1}</field>
+    </record>
+</odoo>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sync Config Form -->
+    <record id="view_aviation_sync_config_form" model="ir.ui.view">
+        <field name="name">aviation.sync.config.form</field>
+        <field name="model">aviation.sync.config</field>
+        <field name="arch" type="xml">
+            <form string="Sync Configuration">
+                <header>
+                    <button name="action_sync_now" string="🔄 Sync Now"
+                            type="object" class="oe_highlight"
+                            confirm="This will fetch all records from the integration service. Continue?"/>
+                    <button name="action_test_connection" string="Test Connection"
+                            type="object"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Active" bg_color="text-bg-success" invisible="not active"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Configuration Name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Connection">
+                            <field name="api_url" placeholder="https://api.example.com/tickets"/>
+                            <field name="auth_type"/>
+                            <field name="auth_header_name"
+                                   invisible="auth_type not in ('api_key',)"/>
+                            <field name="api_key" password="True"
+                                   invisible="auth_type == 'none'"/>
+                            <field name="api_secret" password="True"
+                                   invisible="auth_type != 'basic'"/>
+                        </group>
+                        <group string="Sync Settings">
+                            <field name="batch_size"/>
+                            <field name="last_sync_date"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Sync History" name="logs">
+                            <field name="sync_log_ids" readonly="1">
+                                <tree decoration-success="status == 'success'"
+                                      decoration-danger="status == 'failed'"
+                                      decoration-warning="status == 'running'">
+                                    <field name="start_time"/>
+                                    <field name="end_time"/>
+                                    <field name="duration" string="Duration (s)"/>
+                                    <field name="status" widget="badge"
+                                           decoration-success="status == 'success'"
+                                           decoration-danger="status == 'failed'"/>
+                                    <field name="records_created"/>
+                                    <field name="records_updated"/>
+                                    <field name="records_failed"/>
+                                    <field name="message"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Sync Config List -->
+    <record id="view_aviation_sync_config_tree" model="ir.ui.view">
+        <field name="name">aviation.sync.config.tree</field>
+        <field name="model">aviation.sync.config</field>
+        <field name="arch" type="xml">
+            <tree string="Sync Configurations">
+                <field name="name"/>
+                <field name="api_url"/>
+                <field name="auth_type"/>
+                <field name="last_sync_date"/>
+                <field name="active" widget="boolean_toggle"/>
+                <button name="action_sync_now" string="Sync Now" type="object"
+                        icon="fa-refresh" class="btn-primary"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_aviation_sync_config" model="ir.actions.act_window">
+        <field name="name">Sync Configuration</field>
+        <field name="res_model">aviation.sync.config</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

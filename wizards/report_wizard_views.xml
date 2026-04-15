@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_aviation_report_wizard_form" model="ir.ui.view">
+        <field name="name">aviation.report.wizard.form</field>
+        <field name="model">aviation.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Aviation Report">
+                <group>
+                    <group string="Report Settings">
+                        <field name="report_type" widget="radio"/>
+                    </group>
+                    <group string="Filters">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="pos_channel"/>
+                        <field name="sale_type"/>
+                        <field name="status"/>
+                        <field name="currency" placeholder="e.g. NGN, USD"/>
+                        <field name="group_by"/>
+                        <field name="include_ancillary"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print_report" string="🖨 Print PDF Report"
+                            type="object" class="oe_highlight"/>
+                    <button name="action_view_records" string="📋 View Records"
+                            type="object"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_aviation_report_wizard" model="ir.actions.act_window">
+        <field name="name">Aviation Reports</field>
+        <field name="res_model">aviation.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Refund Wizard View -->
+    <record id="view_aviation_refund_wizard_form" model="ir.ui.view">
+        <field name="name">aviation.refund.wizard.form</field>
+        <field name="model">aviation.refund.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Process Refund">
+                <group>
+                    <group string="Ticket">
+                        <field name="ticket_id" readonly="1"/>
+                        <field name="ticket_no" readonly="1"/>
+                        <field name="face_value" readonly="1"/>
+                    </group>
+                    <group string="Refund Details">
+                        <field name="refund_date"/>
+                        <field name="refund_channel"/>
+                        <field name="refund_amount"/>
+                        <field name="penalty_amount"/>
+                        <field name="net_refund" readonly="1"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="reason" placeholder="Reason for refund / cancellation..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm_refund" string="Confirm Refund"
+                            type="object" class="btn-danger"
+                            confirm="Are you sure you want to process this refund?"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Reissue Wizard View -->
+    <record id="view_aviation_reissue_wizard_form" model="ir.ui.view">
+        <field name="name">aviation.reissue.wizard.form</field>
+        <field name="model">aviation.reissue.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reissue Ticket">
+                <group>
+                    <group string="Original Ticket">
+                        <field name="original_ticket_id" readonly="1"/>
+                        <field name="reissue_date"/>
+                    </group>
+                    <group string="New Ticket Details">
+                        <field name="new_ticket_no"/>
+                        <field name="new_flight_no"/>
+                        <field name="new_flight_date"/>
+                        <field name="new_route"/>
+                        <field name="fare_difference"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="reason" placeholder="Reason for reissue..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm_reissue" string="Confirm Reissue"
+                            type="object" class="oe_highlight"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

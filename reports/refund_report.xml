@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_refund_document">
+        <t t-call="web.external_layout">
+            <t t-set="wizard" t-value="docs"/>
+            <div class="page">
+                <style>
+                    .report-header { background: #4a1a1a; color: white; padding: 12px 16px; margin-bottom: 16px; }
+                    .report-header h2 { color: white; margin: 0; }
+                    .report-header .sub { font-size: 0.85em; opacity: 0.8; }
+                    table.summary { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                    table.summary th { background: #4a1a1a; color: white; padding: 6px 10px; font-size: 0.85em; }
+                    table.summary td { padding: 5px 10px; font-size: 0.82em; border-bottom: 1px solid #eee; }
+                    table.summary tr:nth-child(even) td { background: #fff5f5; }
+                    .totals-row td { font-weight: bold; background: #e9ecef; }
+                    .kpi-row { display: flex; gap: 12px; margin-bottom: 16px; }
+                    .kpi-card { flex: 1; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; }
+                    .kpi-card .label { font-size: 0.75em; color: #6c757d; text-transform: uppercase; }
+                    .kpi-card .value { font-size: 1.4em; font-weight: bold; color: #4a1a1a; }
+                    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: bold; }
+                    .badge-refunded { background: #dc3545; color: white; }
+                    .badge-reissued { background: #0d6efd; color: white; }
+                </style>
+
+                <div class="report-header">
+                    <h2>Refunds &amp; Reissues Report</h2>
+                    <span class="sub">
+                        Period: <t t-esc="wizard.date_from"/> to <t t-esc="wizard.date_to"/> |
+                        Generated: <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y %H:%M')"/>
+                    </span>
+                </div>
+
+                <t t-set="base_domain" t-value="wizard._build_domain()"/>
+                <t t-set="refund_domain" t-value="base_domain + [('is_refund','=',True)]"/>
+                <t t-set="reissue_domain" t-value="base_domain + [('is_reissue','=',True)]"/>
+                <t t-set="refunds" t-value="env['aviation.ticket'].search(refund_domain)"/>
+                <t t-set="reissues" t-value="env['aviation.ticket'].search(reissue_domain).filtered(lambda t: not t.is_refund)"/>
+
+                <t t-set="total_refund_value" t-value="sum(refunds.mapped('refund_amount'))"/>
+                <t t-set="total_face_refunded" t-value="sum(refunds.mapped('face_value'))"/>
+
+                <!-- KPIs -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="label">Total Refunded Tickets</div>
+                        <div class="value"><t t-esc="len(refunds)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Total Refund Amount</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_refund_value)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Face Value Refunded</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_face_refunded)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Total Reissued</div>
+                        <div class="value"><t t-esc="len(reissues)"/></div>
+                    </div>
+                </div>
+
+                <!-- Refunds by Channel -->
+                <h4>Refunds by Payment Channel</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Refund Channel</th>
+                            <th>Count</th>
+                            <th>Face Value</th>
+                            <th>Refund Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="channels" t-value="list(set(refunds.mapped('refund_channel')))"/>
+                        <t t-foreach="sorted(channels, key=lambda x: x or '')" t-as="ch">
+                            <t t-set="ch_ref" t-value="refunds.filtered(lambda t: t.refund_channel == ch)"/>
+                            <tr>
+                                <td><t t-esc="dict(refunds._fields['refund_channel'].selection).get(ch, ch or 'N/A')"/></td>
+                                <td><t t-esc="len(ch_ref)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(ch_ref.mapped('face_value')))"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(ch_ref.mapped('refund_amount')))"/></td>
+                            </tr>
+                        </t>
+                        <tr class="totals-row">
+                            <td>TOTAL</td>
+                            <td><t t-esc="len(refunds)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_face_refunded)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_refund_value)"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Refund Detail -->
+                <h4>Refund Detail</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Ticket No</th>
+                            <th>Passenger</th>
+                            <th>Original POS</th>
+                            <th>Refund Channel</th>
+                            <th>Refund Date</th>
+                            <th>Face Value</th>
+                            <th>Refund Amount</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="refunds" t-as="t">
+                            <tr>
+                                <td><t t-esc="t.ticket_no"/></td>
+                                <td><t t-esc="t.passenger_name or ''"/></td>
+                                <td><t t-esc="dict(t._fields['pos_channel'].selection).get(t.pos_channel, '')"/></td>
+                                <td><t t-esc="dict(t._fields['refund_channel'].selection).get(t.refund_channel, '')"/></td>
+                                <td><t t-esc="t.refund_date"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.face_value)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.refund_amount)"/></td>
+                                <td><t t-esc="(t.refund_reason or '')[:60]"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+
+                <!-- Reissues -->
+                <h4>Reissued Tickets</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>New Ticket No</th>
+                            <th>Passenger</th>
+                            <th>Original Ticket</th>
+                            <th>Route</th>
+                            <th>Reissue Date</th>
+                            <th>Face Value</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="reissues" t-as="t">
+                            <tr>
+                                <td><t t-esc="t.ticket_no"/></td>
+                                <td><t t-esc="t.passenger_name or ''"/></td>
+                                <td><t t-esc="t.original_ticket_id.ticket_no if t.original_ticket_id else ''"/></td>
+                                <td><t t-esc="t.route or ''"/></td>
+                                <td><t t-esc="t.refund_date"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.face_value)"/></td>
+                                <td><t t-esc="(t.refund_reason or '')[:60]"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <record id="action_report_refund" model="ir.actions.report">
+        <field name="name">Refunds &amp; Reissues Report</field>
+        <field name="model">aviation.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aviation_ticket_management.report_refund_document</field>
+        <field name="report_file">aviation_ticket_management.report_refund_document</field>
+        <field name="binding_model_id" ref="model_aviation_report_wizard"/>
+        <field name="paperformat_id" ref="base.paperformat_us"/>
+    </record>
+</odoo>

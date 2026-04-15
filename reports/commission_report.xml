@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_commission_document">
+        <t t-call="web.external_layout">
+            <t t-set="wizard" t-value="docs"/>
+            <div class="page">
+                <style>
+                    .report-header { background: #1a4a2e; color: white; padding: 12px 16px; margin-bottom: 16px; }
+                    .report-header h2 { color: white; margin: 0; }
+                    .report-header .sub { font-size: 0.85em; opacity: 0.8; }
+                    table.summary { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                    table.summary th { background: #1a4a2e; color: white; padding: 6px 10px; font-size: 0.85em; }
+                    table.summary td { padding: 5px 10px; font-size: 0.82em; border-bottom: 1px solid #eee; }
+                    table.summary tr:nth-child(even) td { background: #f7f9fc; }
+                    .totals-row td { font-weight: bold; background: #e9ecef; }
+                    .kpi-row { display: flex; gap: 12px; margin-bottom: 16px; }
+                    .kpi-card { flex: 1; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; }
+                    .kpi-card .label { font-size: 0.75em; color: #6c757d; text-transform: uppercase; }
+                    .kpi-card .value { font-size: 1.4em; font-weight: bold; color: #1a4a2e; }
+                </style>
+
+                <div class="report-header">
+                    <h2>Agency Commission Report</h2>
+                    <span class="sub">
+                        Period: <t t-esc="wizard.date_from"/> to <t t-esc="wizard.date_to"/> |
+                        Generated: <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y %H:%M')"/>
+                    </span>
+                </div>
+
+                <t t-set="domain" t-value="wizard._build_domain()"/>
+                <t t-set="tickets" t-value="env['aviation.ticket'].search(domain)"/>
+                <t t-set="agency_tickets" t-value="tickets.filtered(lambda t: t.sale_type == 'indirect')"/>
+                <t t-set="direct_tickets" t-value="tickets.filtered(lambda t: t.sale_type == 'direct')"/>
+
+                <t t-set="total_gross" t-value="sum(tickets.mapped('face_value'))"/>
+                <t t-set="total_comm" t-value="sum(tickets.mapped('comm'))"/>
+                <t t-set="total_net" t-value="sum(tickets.mapped('net_sales'))"/>
+                <t t-set="agency_gross" t-value="sum(agency_tickets.mapped('face_value'))"/>
+                <t t-set="agency_comm" t-value="sum(agency_tickets.mapped('comm'))"/>
+
+                <!-- KPIs -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="label">Total Gross Sales</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_gross)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Total Commission Paid</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_comm)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Total Net Sales</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_net)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Agency Tickets</div>
+                        <div class="value"><t t-esc="len(agency_tickets)"/></div>
+                    </div>
+                </div>
+
+                <!-- Gross vs Net Comparison -->
+                <h4>Gross vs Net Sales Summary</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Sale Type</th>
+                            <th>Ticket Count</th>
+                            <th>Gross Revenue</th>
+                            <th>Commission</th>
+                            <th>Net Revenue</th>
+                            <th>Avg Comm %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Direct Sales</td>
+                            <td><t t-esc="len(direct_tickets)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(direct_tickets.mapped('face_value')))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(direct_tickets.mapped('comm')))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(direct_tickets.mapped('net_sales')))"/></td>
+                            <td style="text-align:right">
+                                <t t-esc="'{:.2f}%'.format(sum(direct_tickets.mapped('comm')) / sum(direct_tickets.mapped('face_value')) * 100 if sum(direct_tickets.mapped('face_value')) else 0)"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Agency (Indirect) Sales</td>
+                            <td><t t-esc="len(agency_tickets)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(agency_gross)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(agency_comm)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(agency_tickets.mapped('net_sales')))"/></td>
+                            <td style="text-align:right">
+                                <t t-esc="'{:.2f}%'.format(agency_comm / agency_gross * 100 if agency_gross else 0)"/>
+                            </td>
+                        </tr>
+                        <tr class="totals-row">
+                            <td>TOTAL</td>
+                            <td><t t-esc="len(tickets)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_gross)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_comm)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_net)"/></td>
+                            <td style="text-align:right">
+                                <t t-esc="'{:.2f}%'.format(total_comm / total_gross * 100 if total_gross else 0)"/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Agency Breakdown -->
+                <h4>Commission by Agency</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Agent Code</th>
+                            <th>Agency Name</th>
+                            <th>Issue Office</th>
+                            <th>Tickets</th>
+                            <th>Gross Revenue</th>
+                            <th>Commission</th>
+                            <th>Net Revenue</th>
+                            <th>Comm %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="agent_codes" t-value="list(set(agency_tickets.mapped('issue_agent_id')))"/>
+                        <t t-foreach="sorted(agent_codes, key=lambda x: x or '')" t-as="code">
+                            <t t-set="agent_tkts" t-value="agency_tickets.filtered(lambda t: t.issue_agent_id == code)"/>
+                            <t t-set="ag_gross" t-value="sum(agent_tkts.mapped('face_value'))"/>
+                            <t t-set="ag_comm" t-value="sum(agent_tkts.mapped('comm'))"/>
+                            <tr>
+                                <td><t t-esc="code or 'N/A'"/></td>
+                                <td><t t-esc="agent_tkts[0].agent_name or ''"/></td>
+                                <td><t t-esc="agent_tkts[0].issue_office or ''"/></td>
+                                <td><t t-esc="len(agent_tkts)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(ag_gross)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(ag_comm)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(agent_tkts.mapped('net_sales')))"/></td>
+                                <td style="text-align:right"><t t-esc="'{:.2f}%'.format(ag_comm / ag_gross * 100 if ag_gross else 0)"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+
+                <!-- Per-Ticket Detail (Agency) -->
+                <h4>Agency Ticket Detail</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Ticket No</th>
+                            <th>Passenger</th>
+                            <th>Agent</th>
+                            <th>Route</th>
+                            <th>Date</th>
+                            <th>Gross</th>
+                            <th>Comm</th>
+                            <th>Net</th>
+                            <th>Comm %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="agency_tickets" t-as="t">
+                            <tr>
+                                <td><t t-esc="t.ticket_no"/></td>
+                                <td><t t-esc="t.passenger_name or ''"/></td>
+                                <td><t t-esc="(t.issue_agent_id or '') + ' ' + (t.agent_name or '')"/></td>
+                                <td><t t-esc="t.route or ''"/></td>
+                                <td><t t-esc="t.transaction_date or ''"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.face_value)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.comm)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.net_sales)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:.2f}%'.format(t.comm_pct)"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <record id="action_report_commission" model="ir.actions.report">
+        <field name="name">Agency Commission Report</field>
+        <field name="model">aviation.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aviation_ticket_management.report_commission_document</field>
+        <field name="report_file">aviation_ticket_management.report_commission_document</field>
+        <field name="binding_model_id" ref="model_aviation_report_wizard"/>
+        <field name="paperformat_id" ref="base.paperformat_us"/>
+    </record>
+</odoo>

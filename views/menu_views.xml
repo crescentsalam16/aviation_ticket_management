@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Menu -->
+    <menuitem id="menu_aviation_root"
+              name="Aviation"
+              sequence="50"
+              web_icon="aviation_ticket_management,static/description/icon.png"
+              groups="aviation_ticket_management.group_aviation_readonly"/>
+
+    <!-- Tickets -->
+    <menuitem id="menu_aviation_tickets"
+              name="Tickets"
+              parent="menu_aviation_root"
+              sequence="10"/>
+
+    <menuitem id="menu_aviation_ticket_all"
+              name="All Tickets"
+              parent="menu_aviation_tickets"
+              action="action_aviation_ticket"
+              sequence="10"/>
+
+    <menuitem id="menu_aviation_ticket_refunds"
+              name="Refunds &amp; Reissues"
+              parent="menu_aviation_tickets"
+              action="action_aviation_ticket_refunds"
+              sequence="20"/>
+
+    <menuitem id="menu_aviation_ticket_status"
+              name="Flown / Unutilised / Expired"
+              parent="menu_aviation_tickets"
+              action="action_aviation_ticket_expired"
+              sequence="30"/>
+
+    <!-- Reports -->
+    <menuitem id="menu_aviation_reports"
+              name="Reports"
+              parent="menu_aviation_root"
+              sequence="20"
+              groups="aviation_ticket_management.group_aviation_user"/>
+
+    <menuitem id="menu_aviation_report_wizard"
+              name="Generate Report"
+              parent="menu_aviation_reports"
+              action="action_aviation_report_wizard"
+              sequence="10"/>
+
+    <menuitem id="menu_aviation_report_dashboard"
+              name="Revenue Dashboard"
+              parent="menu_aviation_reports"
+              action="action_aviation_report_summary"
+              sequence="20"/>
+
+    <!-- Configuration -->
+    <menuitem id="menu_aviation_config"
+              name="Configuration"
+              parent="menu_aviation_root"
+              sequence="90"
+              groups="aviation_ticket_management.group_aviation_manager"/>
+
+    <menuitem id="menu_aviation_sync_config"
+              name="Sync Configuration"
+              parent="menu_aviation_config"
+              action="action_aviation_sync_config"
+              sequence="10"/>
+</odoo>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_tax_document">
+        <t t-call="web.external_layout">
+            <t t-set="wizard" t-value="docs"/>
+            <div class="page">
+                <style>
+                    .report-header { background: #2a1a4a; color: white; padding: 12px 16px; margin-bottom: 16px; }
+                    .report-header h2 { color: white; margin: 0; }
+                    .report-header .sub { font-size: 0.85em; opacity: 0.8; }
+                    table.summary { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    table.summary th { background: #2a1a4a; color: white; padding: 6px 10px; font-size: 0.85em; }
+                    table.summary td { padding: 5px 10px; font-size: 0.82em; border-bottom: 1px solid #eee; }
+                    table.summary tr:nth-child(even) td { background: #f8f5ff; }
+                    .totals-row td { font-weight: bold; background: #e9ecef; }
+                    .tax-section { border-left: 4px solid #6f42c1; padding-left: 12px; margin-bottom: 12px; }
+                    .tax-section h5 { color: #2a1a4a; margin-bottom: 4px; }
+                    .kpi-row { display: flex; gap: 12px; margin-bottom: 16px; }
+                    .kpi-card { flex: 1; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; }
+                    .kpi-card .label { font-size: 0.75em; color: #6c757d; text-transform: uppercase; }
+                    .kpi-card .value { font-size: 1.3em; font-weight: bold; color: #2a1a4a; }
+                </style>
+
+                <div class="report-header">
+                    <h2>Taxes &amp; Regulatory Fees Report</h2>
+                    <span class="sub">
+                        Period: <t t-esc="wizard.date_from"/> to <t t-esc="wizard.date_to"/> |
+                        Generated: <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y %H:%M')"/>
+                    </span>
+                </div>
+
+                <t t-set="tickets" t-value="env['aviation.ticket'].search(wizard._build_domain())"/>
+                <t t-set="total_psc" t-value="sum(tickets.mapped('g5'))"/>
+                <t t-set="total_ng" t-value="sum(tickets.mapped('ng'))"/>
+                <t t-set="total_qt" t-value="sum(tickets.mapped('qt'))"/>
+                <t t-set="total_s9" t-value="sum(tickets.mapped('s9'))"/>
+                <t t-set="total_te" t-value="sum(tickets.mapped('te'))"/>
+                <t t-set="total_yq" t-value="sum(tickets.mapped('yq'))"/>
+                <t t-set="total_xt" t-value="sum(tickets.mapped('xt'))"/>
+                <t t-set="total_vat" t-value="sum(tickets.mapped('vat_amount'))"/>
+                <t t-set="total_other" t-value="sum(tickets.mapped('other_tax'))"/>
+                <t t-set="grand_total_tax" t-value="sum(tickets.mapped('total_taxes'))"/>
+
+                <!-- Tax Summary KPIs -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="label">PSC (G5)</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_psc)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">VAT</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_vat)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">YQ Fuel Surcharge</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(total_yq)"/></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Total All Taxes</div>
+                        <div class="value"><t t-esc="'{:,.2f}'.format(grand_total_tax)"/></div>
+                    </div>
+                </div>
+
+                <!-- Consolidated Tax Mapping -->
+                <h4>Consolidated Tax &amp; Levy Mapping</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Tax Code</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Ticket Count</th>
+                            <th>Total Amount</th>
+                            <th>% of Total Tax</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>G5</strong></td>
+                            <td>Passenger Service Charge (PSC)</td>
+                            <td>Statutory Aviation Levy</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.g5))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_psc)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_psc / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>VAT</strong></td>
+                            <td>Value Added Tax</td>
+                            <td>Statutory / FIRS</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.vat_amount))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_vat)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_vat / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>NG</strong></td>
+                            <td>Nigerian Tax</td>
+                            <td>Regulatory Fee</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.ng))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_ng)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_ng / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>QT</strong></td>
+                            <td>Government Tax</td>
+                            <td>Regulatory Fee</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.qt))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_qt)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_qt / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>S9</strong></td>
+                            <td>Security Charge</td>
+                            <td>Aviation Security Levy</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.s9))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_s9)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_s9 / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>TE</strong></td>
+                            <td>Ticket Surcharge</td>
+                            <td>Airline Surcharge</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.te))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_te)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_te / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>YQ</strong></td>
+                            <td>Fuel Surcharge</td>
+                            <td>Airline Surcharge</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.yq))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_yq)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_yq / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>XT</strong></td>
+                            <td>Miscellaneous Taxes</td>
+                            <td>Other Aviation Levies</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.xt))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_xt)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_xt / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>OT</strong></td>
+                            <td>Other Tax</td>
+                            <td>Other</td>
+                            <td><t t-esc="len(tickets.filtered(lambda t: t.other_tax))"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_other)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:.1f}%'.format(total_other / grand_total_tax * 100 if grand_total_tax else 0)"/></td>
+                        </tr>
+                        <tr class="totals-row">
+                            <td colspan="4">GRAND TOTAL</td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(grand_total_tax)"/></td>
+                            <td style="text-align:right">100.0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Per-ticket tax detail -->
+                <h4>Per-Ticket Tax Detail</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Ticket No</th>
+                            <th>Route</th>
+                            <th>PSC(G5)</th>
+                            <th>VAT</th>
+                            <th>NG</th>
+                            <th>S9</th>
+                            <th>YQ</th>
+                            <th>XT</th>
+                            <th>Other</th>
+                            <th>Total Tax</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="tickets" t-as="t">
+                            <tr>
+                                <td><t t-esc="t.ticket_no"/></td>
+                                <td><t t-esc="t.route or ''"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.g5)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.vat_amount)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.ng)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.s9)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.yq)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.xt)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.other_tax)"/></td>
+                                <td style="text-align:right"><strong><t t-esc="'{:,.2f}'.format(t.total_taxes)"/></strong></td>
+                            </tr>
+                        </t>
+                        <tr class="totals-row">
+                            <td colspan="2">TOTAL</td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_psc)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_vat)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_ng)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_s9)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_yq)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_xt)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(total_other)"/></td>
+                            <td style="text-align:right"><strong><t t-esc="'{:,.2f}'.format(grand_total_tax)"/></strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <record id="action_report_tax" model="ir.actions.report">
+        <field name="name">Taxes &amp; Regulatory Fees Report</field>
+        <field name="model">aviation.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aviation_ticket_management.report_tax_document</field>
+        <field name="report_file">aviation_ticket_management.report_tax_document</field>
+        <field name="binding_model_id" ref="model_aviation_report_wizard"/>
+        <field name="paperformat_id" ref="base.paperformat_us"/>
+    </record>
+</odoo>

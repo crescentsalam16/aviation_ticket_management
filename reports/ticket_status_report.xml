@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_ticket_status_document">
+        <t t-call="web.external_layout">
+            <t t-set="wizard" t-value="docs"/>
+            <div class="page">
+                <style>
+                    .report-header { background: #1a3a4a; color: white; padding: 12px 16px; margin-bottom: 16px; }
+                    .report-header h2 { color: white; margin: 0; }
+                    .report-header .sub { font-size: 0.85em; opacity: 0.8; }
+                    table.summary { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    table.summary th { background: #1a3a4a; color: white; padding: 6px 10px; font-size: 0.85em; }
+                    table.summary td { padding: 5px 10px; font-size: 0.82em; border-bottom: 1px solid #eee; }
+                    table.summary tr:nth-child(even) td { background: #f5f8fb; }
+                    .totals-row td { font-weight: bold; background: #e9ecef; }
+                    .kpi-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+                    .kpi-card { flex: 1; min-width: 130px; border-radius: 6px; padding: 10px 14px; }
+                    .kpi-card .label { font-size: 0.72em; text-transform: uppercase; opacity: 0.8; }
+                    .kpi-card .value { font-size: 1.3em; font-weight: bold; }
+                    .card-flown { background: #d1e7dd; color: #0a3622; }
+                    .card-unutilised { background: #fff3cd; color: #664d03; }
+                    .card-expired { background: #f8d7da; color: #58151c; }
+                    .card-refunded { background: #cfe2ff; color: #084298; }
+                    .card-total { background: #1a3a4a; color: white; }
+                    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: bold; }
+                    .badge-flown { background: #198754; color: white; }
+                    .badge-unutilised { background: #ffc107; color: #333; }
+                    .badge-expired { background: #dc3545; color: white; }
+                    .badge-refunded { background: #0d6efd; color: white; }
+                    .badge-reissued { background: #6f42c1; color: white; }
+                    .badge-void { background: #6c757d; color: white; }
+                    .section-title { border-bottom: 2px solid #1a3a4a; padding-bottom: 4px; color: #1a3a4a; margin: 16px 0 8px 0; }
+                </style>
+
+                <div class="report-header">
+                    <h2>Ticket Status Report — Flown / Unutilised / Expired</h2>
+                    <span class="sub">
+                        Period: <t t-esc="wizard.date_from"/> to <t t-esc="wizard.date_to"/> |
+                        Generated: <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y %H:%M')"/>
+                    </span>
+                </div>
+
+                <t t-set="all_tickets" t-value="env['aviation.ticket'].search(wizard._build_domain())"/>
+                <t t-set="flown" t-value="all_tickets.filtered(lambda t: t.status == 'flown')"/>
+                <t t-set="unutilised" t-value="all_tickets.filtered(lambda t: t.status == 'unutilised')"/>
+                <t t-set="expired" t-value="all_tickets.filtered(lambda t: t.status == 'expired')"/>
+                <t t-set="refunded" t-value="all_tickets.filtered(lambda t: t.status == 'refunded')"/>
+                <t t-set="reissued" t-value="all_tickets.filtered(lambda t: t.status == 'reissued')"/>
+
+                <!-- Status KPI Cards -->
+                <div class="kpi-row">
+                    <div class="kpi-card card-flown">
+                        <div class="label">✅ Flown</div>
+                        <div class="value"><t t-esc="len(flown)"/></div>
+                        <div style="font-size:0.8em"><t t-esc="'{:,.2f}'.format(sum(flown.mapped('face_value')))"/></div>
+                    </div>
+                    <div class="kpi-card card-unutilised">
+                        <div class="label">⏳ Unutilised</div>
+                        <div class="value"><t t-esc="len(unutilised)"/></div>
+                        <div style="font-size:0.8em"><t t-esc="'{:,.2f}'.format(sum(unutilised.mapped('face_value')))"/></div>
+                    </div>
+                    <div class="kpi-card card-expired">
+                        <div class="label">❌ Expired</div>
+                        <div class="value"><t t-esc="len(expired)"/></div>
+                        <div style="font-size:0.8em"><t t-esc="'{:,.2f}'.format(sum(expired.mapped('face_value')))"/></div>
+                    </div>
+                    <div class="kpi-card card-refunded">
+                        <div class="label">↩ Refunded</div>
+                        <div class="value"><t t-esc="len(refunded)"/></div>
+                        <div style="font-size:0.8em"><t t-esc="'{:,.2f}'.format(sum(refunded.mapped('face_value')))"/></div>
+                    </div>
+                    <div class="kpi-card card-total">
+                        <div class="label">📋 Total</div>
+                        <div class="value"><t t-esc="len(all_tickets)"/></div>
+                        <div style="font-size:0.8em"><t t-esc="'{:,.2f}'.format(sum(all_tickets.mapped('face_value')))"/></div>
+                    </div>
+                </div>
+
+                <!-- Status by POS Channel -->
+                <h4>Status by Point of Sale</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>Flown</th>
+                            <th>Unutilised</th>
+                            <th>Expired</th>
+                            <th>Refunded</th>
+                            <th>Reissued</th>
+                            <th>Total</th>
+                            <th>Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="pos_choices" t-value="list(set(all_tickets.mapped('pos_channel')))"/>
+                        <t t-foreach="sorted(pos_choices, key=lambda x: x or '')" t-as="ch">
+                            <t t-set="ch_tks" t-value="all_tickets.filtered(lambda t: t.pos_channel == ch)"/>
+                            <tr>
+                                <td><t t-esc="dict(all_tickets._fields['pos_channel'].selection).get(ch, ch or 'N/A')"/></td>
+                                <td><t t-esc="len(ch_tks.filtered(lambda t: t.status=='flown'))"/></td>
+                                <td><t t-esc="len(ch_tks.filtered(lambda t: t.status=='unutilised'))"/></td>
+                                <td><t t-esc="len(ch_tks.filtered(lambda t: t.status=='expired'))"/></td>
+                                <td><t t-esc="len(ch_tks.filtered(lambda t: t.status=='refunded'))"/></td>
+                                <td><t t-esc="len(ch_tks.filtered(lambda t: t.status=='reissued'))"/></td>
+                                <td><t t-esc="len(ch_tks)"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(ch_tks.mapped('face_value')))"/></td>
+                            </tr>
+                        </t>
+                        <tr class="totals-row">
+                            <td>TOTAL</td>
+                            <td><t t-esc="len(flown)"/></td>
+                            <td><t t-esc="len(unutilised)"/></td>
+                            <td><t t-esc="len(expired)"/></td>
+                            <td><t t-esc="len(refunded)"/></td>
+                            <td><t t-esc="len(reissued)"/></td>
+                            <td><t t-esc="len(all_tickets)"/></td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(all_tickets.mapped('face_value')))"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Unutilised Tickets Detail -->
+                <h4 class="section-title">⏳ Unutilised Tickets</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Ticket No</th>
+                            <th>Passenger</th>
+                            <th>Route</th>
+                            <th>Flight Date</th>
+                            <th>Expiry</th>
+                            <th>Channel</th>
+                            <th>Face Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="unutilised" t-as="t">
+                            <tr>
+                                <td><t t-esc="t.ticket_no"/></td>
+                                <td><t t-esc="t.passenger_name or ''"/></td>
+                                <td><t t-esc="t.route or ''"/></td>
+                                <td><t t-esc="t.flight_date or ''"/></td>
+                                <td><t t-esc="t.ticket_expires or ''"/></td>
+                                <td><t t-esc="dict(t._fields['pos_channel'].selection).get(t.pos_channel,'')"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.face_value)"/></td>
+                            </tr>
+                        </t>
+                        <tr class="totals-row">
+                            <td colspan="6">Subtotal</td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(unutilised.mapped('face_value')))"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Expired Tickets -->
+                <h4 class="section-title">❌ Expired Tickets</h4>
+                <table class="summary">
+                    <thead>
+                        <tr>
+                            <th>Ticket No</th>
+                            <th>Passenger</th>
+                            <th>Route</th>
+                            <th>Expiry</th>
+                            <th>Channel</th>
+                            <th>Face Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="expired" t-as="t">
+                            <tr>
+                                <td><t t-esc="t.ticket_no"/></td>
+                                <td><t t-esc="t.passenger_name or ''"/></td>
+                                <td><t t-esc="t.route or ''"/></td>
+                                <td><t t-esc="t.ticket_expires or ''"/></td>
+                                <td><t t-esc="dict(t._fields['pos_channel'].selection).get(t.pos_channel,'')"/></td>
+                                <td style="text-align:right"><t t-esc="'{:,.2f}'.format(t.face_value)"/></td>
+                            </tr>
+                        </t>
+                        <tr class="totals-row">
+                            <td colspan="5">Subtotal</td>
+                            <td style="text-align:right"><t t-esc="'{:,.2f}'.format(sum(expired.mapped('face_value')))"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <record id="action_report_ticket_status" model="ir.actions.report">
+        <field name="name">Flown / Unutilised / Expired Tickets Report</field>
+        <field name="model">aviation.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aviation_ticket_management.report_ticket_status_document</field>
+        <field name="report_file">aviation_ticket_management.report_ticket_status_document</field>
+        <field name="binding_model_id" ref="model_aviation_report_wizard"/>
+        <field name="paperformat_id" ref="base.paperformat_us"/>
+    </record>
+</odoo>
